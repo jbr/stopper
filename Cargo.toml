@@ -3,7 +3,8 @@ name = "stopper"
 version = "0.1.0"
 authors = ["Jacob Rothstein <hi@jbr.me>"]
 edition = "2018"
-description = "an async stop broadcaster or something like that"
+description = "an async stream and future stopper mechanism"
+license = "Apache-2.0/MIT"
 
 [dependencies]
 waker-set = "0.1.1"
