@@ -7,6 +7,6 @@ description = "an async stream and future stopper mechanism"
 license = "Apache-2.0/MIT"
 
 [dependencies]
-waker-set = "0.1.1"
+waker-set = "0.2.0"
 futures-lite = "1.11.3"
 pin-project = "1.0.5"

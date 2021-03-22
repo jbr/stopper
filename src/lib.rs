@@ -12,8 +12,6 @@ pub struct StopperInner {
     stopped: bool,
     waker: WakerSet,
 }
-unsafe impl Send for StopperInner {}
-unsafe impl Sync for StopperInner {}
 
 #[derive(Clone)]
 pub struct Stopper(Arc<RwLock<StopperInner>>);
