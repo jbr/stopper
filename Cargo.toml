@@ -10,3 +10,6 @@ license = "Apache-2.0/MIT"
 waker-set = "0.2.0"
 futures-lite = "1.11.3"
 pin-project = "1.0.5"
+
+[dev-dependencies]
+async-io = "1.3.1"
