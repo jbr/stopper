@@ -134,7 +134,7 @@ impl Stopper {
         }
     }
 
-    pub fn remove_waker(&self, id: usize) {
+    pub(crate) fn remove_waker(&self, id: usize) {
         self.0.write().unwrap().waker.cancel(id);
     }
 }
