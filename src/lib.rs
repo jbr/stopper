@@ -1,3 +1,14 @@
+#![forbid(unsafe_code, future_incompatible)]
+#![deny(
+    missing_debug_implementations,
+    nonstandard_style,
+    missing_copy_implementations,
+    unused_qualifications
+)]
+//! # Stopper
+//!
+//! The primary type for this crate is [`Stopper`]
+
 use futures_lite::Stream;
 use std::fmt::{Debug, Formatter, Result};
 use std::sync::{Arc, RwLock};
