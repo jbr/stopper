@@ -7,12 +7,16 @@
 )]
 //! # Stopper
 //!
-//! The primary type for this crate is [`Stopper`]
+//! The primary type for this crate is [`Stopper`], which provides a
+//! synchronized mechanism for canceling Futures and Streams.
 
 use futures_lite::Stream;
-use std::fmt::{Debug, Formatter, Result};
-use std::sync::{Arc, RwLock};
-use std::{future::Future, task::Context};
+use std::{
+    fmt::{Debug, Formatter, Result},
+    future::Future,
+    sync::{Arc, RwLock},
+    task::Context,
+};
 use waker_set::WakerSet;
 
 mod stream_stopper;
@@ -21,9 +25,8 @@ pub use stream_stopper::StreamStopper;
 mod future_stopper;
 pub use future_stopper::FutureStopper;
 
-/// This crate provides a [`Stopper`] struct that provides a
-/// synchronized mechanism for canceling Futures and Streams.
-
+/// This struct provides a synchronized mechanism for canceling
+/// Futures and Streams.
 #[derive(Clone)]
 pub struct Stopper(Arc<RwLock<StopperInner>>);
 
@@ -72,6 +75,7 @@ impl Stopper {
     /// use futures_lite::StreamExt;
     /// let stopper = stopper::Stopper::new();
     /// let mut stream = stopper.stop_stream(futures_lite::stream::repeat("infinite stream"));
+    ///
     /// std::thread::spawn(move || {
     ///     std::thread::sleep(std::time::Duration::from_secs(1));
     ///     stopper.stop();
