@@ -6,6 +6,7 @@ use std::{
     task::{Context, Poll},
 };
 
+#[allow(missing_debug_implementations)]
 #[pin_project(PinnedDrop)]
 pub struct FutureStopper<F> {
     #[pin]
