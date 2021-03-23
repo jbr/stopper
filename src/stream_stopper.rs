@@ -75,7 +75,7 @@ impl<S: Stream> Stream for StreamStopper<S> {
         } else {
             let inner_result = this.stream.poll_next(cx);
 
-            if let Poll::Pending = inner_result {
+            if inner_result.is_pending() {
                 this.stopper.replace(this.waker_id, cx);
             } else {
                 this.stopper.remove(this.waker_id);
