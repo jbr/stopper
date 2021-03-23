@@ -4,7 +4,9 @@ version = "0.2.0"
 authors = ["Jacob Rothstein <hi@jbr.me>"]
 edition = "2018"
 description = "an async stream and future stopper mechanism"
-license = "Apache-2.0/MIT"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/jbr/stopper"
 
 [dependencies]
 waker-set = "0.2.0"
