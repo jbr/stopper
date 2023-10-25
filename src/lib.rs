@@ -10,14 +10,16 @@
 //! The primary type for this crate is [`Stopper`], which provides a
 //! synchronized mechanism for canceling Futures and Streams.
 
+use event_listener::Event;
 use futures_lite::Stream;
 use std::{
     fmt::{Debug, Formatter, Result},
     future::Future,
-    sync::{Arc, RwLock},
-    task::Context,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
 };
-use waker_set::WakerSet;
 
 mod stream_stopper;
 pub use stream_stopper::StreamStopper;
@@ -28,7 +30,7 @@ pub use future_stopper::FutureStopper;
 /// This struct provides a synchronized mechanism for canceling
 /// Futures and Streams.
 #[derive(Clone)]
-pub struct Stopper(Arc<RwLock<StopperInner>>);
+pub struct Stopper(Arc<StopperInner>);
 
 impl Stopper {
     /// Initialize a stopper that is not yet stopped and that has zero
@@ -42,10 +44,8 @@ impl Stopper {
     /// Stopper or any clone representing the same initial stopper.
     ///
     pub fn stop(&self) {
-        let mut lock = self.0.write().unwrap();
-        if !lock.stopped {
-            lock.stopped = true;
-            lock.waker.notify_all();
+        if !self.0.stopped.swap(true, Ordering::SeqCst) {
+            self.0.event.notify(usize::MAX);
         }
     }
 
@@ -61,7 +61,7 @@ impl Stopper {
     /// assert!(stopper.is_stopped());
     /// ```
     pub fn is_stopped(&self) -> bool {
-        self.0.read().unwrap().stopped
+        self.0.stopped.load(Ordering::SeqCst)
     }
 
     /// This function returns a new stream which will poll None
@@ -87,7 +87,7 @@ impl Stopper {
     /// # }) }
     /// ```
     pub fn stop_stream<S: Stream>(&self, stream: S) -> StreamStopper<S> {
-        StreamStopper::new(&self, stream)
+        StreamStopper::new(self, stream)
     }
 
     /// This function returns a Future which wraps the provided future
@@ -113,51 +113,28 @@ impl Stopper {
     /// # }) }
     /// ```
     pub fn stop_future<F: Future>(&self, future: F) -> FutureStopper<F> {
-        FutureStopper::new(&self, future)
-    }
-
-    pub(crate) fn insert(&self, cx: &Context) -> usize {
-        self.0.write().unwrap().waker.insert(cx)
-    }
-
-    pub(crate) fn replace(&self, waker_id: &mut Option<usize>, cx: &Context) {
-        if let Some(id) = waker_id {
-            self.remove_waker(*id);
-        }
-
-        waker_id.replace(self.insert(&cx));
-    }
-
-    pub(crate) fn remove(&self, waker_id: &mut Option<usize>) {
-        if let Some(id) = waker_id.take() {
-            self.remove_waker(id);
-        }
-    }
-
-    pub(crate) fn remove_waker(&self, id: usize) {
-        self.0.write().unwrap().waker.cancel(id);
+        FutureStopper::new(self, future)
     }
 }
 
 impl Default for Stopper {
     fn default() -> Self {
-        Self(Arc::new(RwLock::new(StopperInner {
-            stopped: false,
-            waker: WakerSet::new(),
-        })))
+        Self(Arc::new(StopperInner {
+            stopped: false.into(),
+            event: Event::new(),
+        }))
     }
 }
 
 impl Debug for Stopper {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let lock = self.0.read().unwrap();
         f.debug_struct("Stopper")
-            .field("stopped", &lock.stopped)
+            .field("stopped", &self.is_stopped())
             .finish()
     }
 }
 
 struct StopperInner {
-    stopped: bool,
-    waker: WakerSet,
+    stopped: AtomicBool,
+    event: Event,
 }

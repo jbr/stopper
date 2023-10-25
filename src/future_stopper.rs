@@ -1,18 +1,20 @@
 use crate::Stopper;
-use pin_project::{pin_project, pinned_drop};
+use event_listener::EventListener;
+use pin_project_lite::pin_project;
 use std::{
     future::Future,
     pin::Pin,
     task::{Context, Poll},
 };
 
-#[allow(missing_debug_implementations)]
-#[pin_project(PinnedDrop)]
-pub struct FutureStopper<F> {
-    #[pin]
-    future: F,
-    stopper: Stopper,
-    waker_id: Option<usize>,
+pin_project! {
+    #[allow(missing_debug_implementations)]
+    pub struct FutureStopper<F> {
+        #[pin]
+        future: F,
+        stopper: Stopper,
+        event_listener: Pin<Box<EventListener>>,
+    }
 }
 
 impl<F: Future> FutureStopper<F> {
@@ -20,16 +22,8 @@ impl<F: Future> FutureStopper<F> {
         Self {
             future,
             stopper: stopper.clone(),
-            waker_id: None,
+            event_listener: stopper.0.event.listen(),
         }
-    }
-}
-
-#[pinned_drop]
-impl<F> PinnedDrop for FutureStopper<F> {
-    fn drop(self: Pin<&mut Self>) {
-        let this = self.project();
-        this.stopper.remove(this.waker_id);
     }
 }
 
@@ -38,20 +32,21 @@ impl<F: Future> Future for FutureStopper<F> {
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.project();
+        loop {
+            if this.stopper.is_stopped() {
+                return Poll::Ready(None);
+            }
 
-        if this.stopper.is_stopped() {
-            Poll::Ready(None)
-        } else {
-            match this.future.poll(cx) {
-                Poll::Ready(t) => {
-                    this.stopper.remove(this.waker_id);
-                    Poll::Ready(Some(t))
-                }
-
-                Poll::Pending => {
-                    this.stopper.replace(this.waker_id, cx);
-                    Poll::Pending
-                }
+            if this.event_listener.is_listening() {
+                return match this.event_listener.as_mut().poll(cx) {
+                    Poll::Ready(()) => Poll::Ready(None),
+                    Poll::Pending => match this.future.poll(cx) {
+                        Poll::Ready(output) => Poll::Ready(Some(output)),
+                        Poll::Pending => Poll::Pending,
+                    },
+                };
+            } else {
+                this.event_listener.as_mut().listen();
             }
         }
     }

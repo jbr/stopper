@@ -1,19 +1,27 @@
 use crate::Stopper;
+use event_listener::EventListener;
 use futures_lite::Stream;
-use pin_project::{pin_project, pinned_drop};
 use std::{
-    fmt::Debug,
+    fmt::{self, Debug, Formatter},
+    future::Future,
     ops::{Deref, DerefMut},
     pin::Pin,
     task::{Context, Poll},
 };
 
-#[pin_project(PinnedDrop)]
-pub struct StreamStopper<S> {
-    #[pin]
-    stream: S,
-    stopper: Stopper,
-    waker_id: Option<usize>,
+pin_project_lite::pin_project! {
+    pub struct StreamStopper<S> {
+        #[pin]
+        stream: S,
+        stopper: Stopper,
+        event_listener: Pin<Box<EventListener>>
+    }
+}
+
+impl<S: Clone + Stream> Clone for StreamStopper<S> {
+    fn clone(&self) -> Self {
+        Self::new(&self.stopper, self.stream.clone())
+    }
 }
 
 impl<S> Deref for StreamStopper<S> {
@@ -24,16 +32,6 @@ impl<S> Deref for StreamStopper<S> {
     }
 }
 
-impl<S: Clone> Clone for StreamStopper<S> {
-    fn clone(&self) -> Self {
-        StreamStopper {
-            stream: self.stream.clone(),
-            stopper: self.stopper.clone(),
-            waker_id: None,
-        }
-    }
-}
-
 impl<S> DerefMut for StreamStopper<S> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.stream
@@ -41,7 +39,7 @@ impl<S> DerefMut for StreamStopper<S> {
 }
 
 impl<S: Debug> Debug for StreamStopper<S> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         Debug::fmt(&self.stream, f)
     }
 }
@@ -51,16 +49,8 @@ impl<S: Stream> StreamStopper<S> {
         Self {
             stream,
             stopper: stopper.clone(),
-            waker_id: None,
+            event_listener: stopper.0.event.listen(),
         }
-    }
-}
-
-#[pinned_drop]
-impl<S> PinnedDrop for StreamStopper<S> {
-    fn drop(self: Pin<&mut Self>) {
-        let this = self.project();
-        this.stopper.remove(this.waker_id);
     }
 }
 
@@ -69,19 +59,19 @@ impl<S: Stream> Stream for StreamStopper<S> {
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let this = self.project();
-
-        if this.stopper.is_stopped() {
-            Poll::Ready(None)
-        } else {
-            let inner_result = this.stream.poll_next(cx);
-
-            if inner_result.is_pending() {
-                this.stopper.replace(this.waker_id, cx);
-            } else {
-                this.stopper.remove(this.waker_id);
+        loop {
+            if this.stopper.is_stopped() {
+                return Poll::Ready(None);
             }
 
-            inner_result
+            if this.event_listener.is_listening() {
+                return match this.event_listener.as_mut().poll(cx) {
+                    Poll::Ready(()) => Poll::Ready(None),
+                    Poll::Pending => this.stream.poll_next(cx),
+                };
+            } else {
+                this.event_listener.as_mut().listen();
+            }
         }
     }
 }
