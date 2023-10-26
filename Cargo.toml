@@ -1,6 +1,6 @@
 [package]
 name = "stopper"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Jacob Rothstein <hi@jbr.me>"]
 edition = "2018"
 description = "an async stream and future stopper mechanism"
