@@ -65,9 +65,9 @@ impl<S: Stream> Stream for StreamStopper<S> {
             }
 
             if this.event_listener.is_listening() {
-                return match this.event_listener.as_mut().poll(cx) {
-                    Poll::Ready(()) => Poll::Ready(None),
-                    Poll::Pending => this.stream.poll_next(cx),
+                match this.event_listener.as_mut().poll(cx) {
+                    Poll::Ready(()) => continue,
+                    Poll::Pending => return this.stream.poll_next(cx),
                 };
             } else {
                 this.event_listener.as_mut().listen();

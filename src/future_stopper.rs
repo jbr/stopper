@@ -38,12 +38,14 @@ impl<F: Future> Future for FutureStopper<F> {
             }
 
             if this.event_listener.is_listening() {
-                return match this.event_listener.as_mut().poll(cx) {
-                    Poll::Ready(()) => Poll::Ready(None),
-                    Poll::Pending => match this.future.poll(cx) {
-                        Poll::Ready(output) => Poll::Ready(Some(output)),
-                        Poll::Pending => Poll::Pending,
-                    },
+                match this.event_listener.as_mut().poll(cx) {
+                    Poll::Ready(()) => continue,
+                    Poll::Pending => {
+                        return match this.future.poll(cx) {
+                            Poll::Ready(output) => Poll::Ready(Some(output)),
+                            Poll::Pending => Poll::Pending,
+                        }
+                    }
                 };
             } else {
                 this.event_listener.as_mut().listen();
