@@ -70,7 +70,7 @@ impl<S: Stream> Stream for StreamStopper<S> {
                     Poll::Pending => return this.stream.poll_next(cx),
                 };
             } else {
-                this.event_listener.as_mut().listen();
+                this.event_listener.as_mut().listen(&this.stopper.0.event);
             }
         }
     }
