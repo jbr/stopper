@@ -48,7 +48,7 @@ impl<F: Future> Future for FutureStopper<F> {
                     }
                 };
             } else {
-                this.event_listener.as_mut().listen();
+                this.event_listener.as_mut().listen(&this.stopper.0.event);
             }
         }
     }
