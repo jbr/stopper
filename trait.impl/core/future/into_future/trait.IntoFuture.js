@@ -1,0 +1,3 @@
+(function() {var implementors = {
+"stopper":[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.75.0/core/future/into_future/trait.IntoFuture.html\" title=\"trait core::future::into_future::IntoFuture\">IntoFuture</a> for <a class=\"struct\" href=\"stopper/struct.Stopper.html\" title=\"struct stopper::Stopper\">Stopper</a>"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

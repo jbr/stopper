@@ -1,0 +1,4 @@
+(function() {var implementors = {
+"crossbeam_utils":[["impl&lt;T&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.75.0/core/ops/drop/trait.Drop.html\" title=\"trait core::ops::drop::Drop\">Drop</a> for <a class=\"struct\" href=\"crossbeam_utils/atomic/struct.AtomicCell.html\" title=\"struct crossbeam_utils::atomic::AtomicCell\">AtomicCell</a>&lt;T&gt;"]],
+"event_listener":[["impl&lt;T&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.75.0/core/ops/drop/trait.Drop.html\" title=\"trait core::ops::drop::Drop\">Drop</a> for <a class=\"struct\" href=\"event_listener/struct.Event.html\" title=\"struct event_listener::Event\">Event</a>&lt;T&gt;"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
