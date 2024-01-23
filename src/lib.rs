@@ -21,6 +21,9 @@ use std::{
     },
 };
 
+mod stopped;
+pub use stopped::Stopped;
+
 mod stream_stopper;
 pub use stream_stopper::StreamStopper;
 
@@ -29,6 +32,11 @@ pub use future_stopper::FutureStopper;
 
 /// This struct provides a synchronized mechanism for canceling
 /// Futures and Streams.
+///
+/// Stoppers are cheap to clone.
+///
+/// A clone of the Stopper can be awaited and will be pending until the Stopper is stopped. If the
+/// Stopper is stopped before it is awaited, it will be ready immediately.
 #[derive(Clone)]
 pub struct Stopper(Arc<StopperInner>);
 
