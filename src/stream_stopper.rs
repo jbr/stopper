@@ -14,7 +14,7 @@ pin_project_lite::pin_project! {
         #[pin]
         stream: S,
         stopper: Stopper,
-        event_listener: Pin<Box<EventListener>>
+        event_listener: EventListener
     }
 }
 
@@ -64,14 +64,10 @@ impl<S: Stream> Stream for StreamStopper<S> {
                 return Poll::Ready(None);
             }
 
-            if this.event_listener.is_listening() {
-                match this.event_listener.as_mut().poll(cx) {
-                    Poll::Ready(()) => continue,
-                    Poll::Pending => return this.stream.poll_next(cx),
-                };
-            } else {
-                this.event_listener.as_mut().listen(&this.stopper.0.event);
-            }
+            match Pin::new(&mut *this.event_listener).poll(cx) {
+                Poll::Ready(()) => continue,
+                Poll::Pending => return this.stream.poll_next(cx),
+            };
         }
     }
 }
