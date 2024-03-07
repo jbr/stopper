@@ -10,7 +10,7 @@ use std::{
 #[derive(Debug)]
 pub struct Stopped {
     stopper: Stopper,
-    event_listener: Pin<Box<EventListener>>,
+    event_listener: EventListener,
 }
 
 impl From<Stopper> for Stopped {
@@ -38,14 +38,10 @@ impl Future for Stopped {
                 return Poll::Ready(());
             }
 
-            if event_listener.is_listening() {
-                match event_listener.as_mut().poll(cx) {
-                    Poll::Ready(()) => continue,
-                    Poll::Pending => return Poll::Pending,
-                };
-            } else {
-                event_listener.as_mut().listen(&stopper.0.event);
-            }
+            match Pin::new(&mut *event_listener).poll(cx) {
+                Poll::Ready(()) => continue,
+                Poll::Pending => return Poll::Pending,
+            };
         }
     }
 }
@@ -55,40 +51,10 @@ impl IntoFuture for Stopper {
     type IntoFuture = Stopped;
 
     fn into_future(self) -> Self::IntoFuture {
+        let event_listener = self.0.event.listen();
         Stopped {
             stopper: self,
-            event_listener: Box::pin(EventListener::new()),
+            event_listener,
         }
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use std::{
-        thread::{sleep, spawn},
-        time::Duration,
-    };
-
-    use super::*;
-    use futures_lite::future::{block_on, poll_once};
-
-    #[test]
-    fn stopped() {
-        block_on(async {
-            let stopper = Stopper::new();
-            let future = stopper.clone().into_future();
-            spawn({
-                let stopper = stopper.clone();
-                move || {
-                    sleep(Duration::from_secs(2));
-                    stopper.stop();
-                }
-            });
-            assert!(!stopper.is_stopped());
-            assert!(poll_once(stopper.clone().into_future()).await.is_none());
-            future.await;
-            assert!(stopper.is_stopped());
-            assert!(poll_once(stopper.into_future()).await.is_some());
-        });
     }
 }

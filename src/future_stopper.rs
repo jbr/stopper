@@ -13,7 +13,7 @@ pin_project! {
         #[pin]
         future: F,
         stopper: Stopper,
-        event_listener: Pin<Box<EventListener>>,
+        event_listener: EventListener,
     }
 }
 
@@ -37,19 +37,15 @@ impl<F: Future> Future for FutureStopper<F> {
                 return Poll::Ready(None);
             }
 
-            if this.event_listener.is_listening() {
-                match this.event_listener.as_mut().poll(cx) {
-                    Poll::Ready(()) => continue,
-                    Poll::Pending => {
-                        return match this.future.poll(cx) {
-                            Poll::Ready(output) => Poll::Ready(Some(output)),
-                            Poll::Pending => Poll::Pending,
-                        }
+            match Pin::new(&mut *this.event_listener).poll(cx) {
+                Poll::Ready(()) => continue,
+                Poll::Pending => {
+                    return match this.future.poll(cx) {
+                        Poll::Ready(output) => Poll::Ready(Some(output)),
+                        Poll::Pending => Poll::Pending,
                     }
-                };
-            } else {
-                this.event_listener.as_mut().listen(&this.stopper.0.event);
-            }
+                }
+            };
         }
     }
 }

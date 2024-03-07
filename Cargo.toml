@@ -9,9 +9,10 @@ readme = "README.md"
 repository = "https://github.com/jbr/stopper"
 
 [dependencies]
-futures-lite = "2.0.1"
-event-listener = "4.0.0"
+futures-lite = "2.2.0"
+event-listener = "5.2.0"
 pin-project-lite = "0.2.13"
 
 [dev-dependencies]
-async-io = "2.2.0"
+test-harness = "0.2.0"
+

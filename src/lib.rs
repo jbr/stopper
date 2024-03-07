@@ -10,7 +10,7 @@
 //! The primary type for this crate is [`Stopper`], which provides a
 //! synchronized mechanism for canceling Futures and Streams.
 
-use event_listener::Event;
+use event_listener::{Event, IntoNotification};
 use futures_lite::Stream;
 use std::{
     fmt::{Debug, Formatter, Result},
@@ -40,6 +40,12 @@ pub use future_stopper::FutureStopper;
 #[derive(Clone)]
 pub struct Stopper(Arc<StopperInner>);
 
+impl From<StopperInner> for Stopper {
+    fn from(value: StopperInner) -> Self {
+        Self(Arc::new(value))
+    }
+}
+
 impl Stopper {
     /// Initialize a stopper that is not yet stopped and that has zero
     /// registered wakers. Any clone of this stopper represents the
@@ -53,21 +59,12 @@ impl Stopper {
     ///
     pub fn stop(&self) {
         if !self.0.stopped.swap(true, Ordering::SeqCst) {
-            self.0.event.notify(usize::MAX);
+            self.0.event.notify(usize::MAX.relaxed());
         }
     }
 
     /// Returns whether this stopper (or any clone of it) has been
     /// stopped.
-    ///
-    /// ## Example
-    ///
-    /// ```rust
-    /// let stopper = stopper::Stopper::new();
-    /// assert!(!stopper.is_stopped());
-    /// stopper.stop();
-    /// assert!(stopper.is_stopped());
-    /// ```
     pub fn is_stopped(&self) -> bool {
         self.0.stopped.load(Ordering::SeqCst)
     }
@@ -75,25 +72,6 @@ impl Stopper {
     /// This function returns a new stream which will poll None
     /// (indicating a completed stream) when this Stopper has been
     /// stopped. The Stream's Item is unchanged.
-    ///
-    /// ## Example
-    ///
-    /// ```rust
-    /// # fn main() { async_io::block_on(async {
-    /// use futures_lite::StreamExt;
-    /// let stopper = stopper::Stopper::new();
-    /// let mut stream = stopper.stop_stream(futures_lite::stream::repeat("infinite stream"));
-    ///
-    /// std::thread::spawn(move || {
-    ///     std::thread::sleep(std::time::Duration::from_secs(1));
-    ///     stopper.stop();
-    /// });
-    ///
-    /// while let Some(item) = stream.next().await {
-    ///     println!("{}", item);
-    /// }
-    /// # }) }
-    /// ```
     pub fn stop_stream<S: Stream>(&self, stream: S) -> StreamStopper<S> {
         StreamStopper::new(self, stream)
     }
@@ -103,23 +81,6 @@ impl Stopper {
     /// Output of the returned future is wrapped with an Option. If
     /// the future resolves to None, that indicates that it was
     /// stopped instead of polling to completion.
-    ///
-    /// ## Example
-    ///
-    /// ```rust
-    /// # fn main() { async_io::block_on(async {
-    /// let stopper = stopper::Stopper::new();
-    /// let mut future = stopper.stop_future(std::future::pending::<()>());
-    ///
-    /// std::thread::spawn(move || {
-    ///     std::thread::sleep(std::time::Duration::from_secs(1));
-    ///     stopper.stop();
-    /// });
-    ///
-    /// assert_eq!(future.await, None);
-    ///
-    /// # }) }
-    /// ```
     pub fn stop_future<F: Future>(&self, future: F) -> FutureStopper<F> {
         FutureStopper::new(self, future)
     }
@@ -127,10 +88,10 @@ impl Stopper {
 
 impl Default for Stopper {
     fn default() -> Self {
-        Self(Arc::new(StopperInner {
+        Self::from(StopperInner {
             stopped: false.into(),
             event: Event::new(),
-        }))
+        })
     }
 }
 
