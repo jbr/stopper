@@ -9,6 +9,8 @@ use std::{
 
 pin_project! {
     #[allow(missing_debug_implementations)]
+    /// A wrapper that cancels the contained [`Future`] at an await point and returns None when
+    /// the associated [`Stopper`] is stopped.
     pub struct FutureStopper<F> {
         #[pin]
         future: F,
