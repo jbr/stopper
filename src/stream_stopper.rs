@@ -70,4 +70,8 @@ impl<S: Stream> Stream for StreamStopper<S> {
             };
         }
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.stream.size_hint()
+    }
 }
