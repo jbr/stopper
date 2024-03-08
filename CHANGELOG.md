@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.7](https://github.com/jbr/stopper/compare/v0.2.6...v0.2.7) - 2024-03-08
+
+### Other
+- *(deps)* bump actions/checkout from 3 to 4
+- update readme and docs
+- fix edition
+
 ## [0.2.6](https://github.com/jbr/stopper/compare/v0.2.5...v0.2.6) - 2024-03-08
 
 ### Fixed
