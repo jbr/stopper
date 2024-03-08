@@ -3,8 +3,11 @@
     missing_debug_implementations,
     nonstandard_style,
     missing_copy_implementations,
-    unused_qualifications
+    unused_qualifications,
+    missing_docs,
+    rustdoc::missing_crate_level_docs
 )]
+#![warn(clippy::pedantic)]
 //! # Stopper
 //!
 //! The primary type for this crate is [`Stopper`], which provides a
@@ -49,7 +52,8 @@ impl From<StopperInner> for Stopper {
 impl Stopper {
     /// Initialize a stopper that is not yet stopped and that has zero
     /// registered wakers. Any clone of this stopper represents the
-    /// same internal state. This is identical to Stopper::default()
+    /// same internal state. This is identical to `Stopper::default()`
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -65,6 +69,7 @@ impl Stopper {
 
     /// Returns whether this stopper (or any clone of it) has been
     /// stopped.
+    #[must_use]
     pub fn is_stopped(&self) -> bool {
         self.0.stopped.load(Ordering::SeqCst)
     }

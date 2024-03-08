@@ -10,6 +10,7 @@ use std::{
 };
 
 pin_project_lite::pin_project! {
+    /// A wrapper type that stops a [`Stream`] when the associated [`Stopper`] is stopped
     pub struct StreamStopper<S> {
         #[pin]
         stream: S,
