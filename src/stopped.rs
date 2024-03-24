@@ -39,7 +39,10 @@ impl Future for Stopped {
             }
 
             match Pin::new(&mut *event_listener).poll(cx) {
-                Poll::Ready(()) => continue,
+                Poll::Ready(()) => {
+                    *event_listener = stopper.0.event.listen();
+                    continue;
+                }
                 Poll::Pending => return Poll::Pending,
             };
         }
