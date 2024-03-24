@@ -40,12 +40,12 @@ impl<F: Future> Future for FutureStopper<F> {
             }
 
             match Pin::new(&mut *this.event_listener).poll(cx) {
-                Poll::Ready(()) => continue,
+                Poll::Ready(()) => {
+                    *this.event_listener = this.stopper.0.event.listen();
+                    continue;
+                }
                 Poll::Pending => {
-                    return match this.future.poll(cx) {
-                        Poll::Ready(output) => Poll::Ready(Some(output)),
-                        Poll::Pending => Poll::Pending,
-                    }
+                    return this.future.poll(cx).map(Some);
                 }
             };
         }

@@ -66,7 +66,10 @@ impl<S: Stream> Stream for StreamStopper<S> {
             }
 
             match Pin::new(&mut *this.event_listener).poll(cx) {
-                Poll::Ready(()) => continue,
+                Poll::Ready(()) => {
+                    *this.event_listener = this.stopper.0.event.listen();
+                    continue;
+                }
                 Poll::Pending => return this.stream.poll_next(cx),
             };
         }
