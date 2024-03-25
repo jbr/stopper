@@ -3,14 +3,14 @@ use event_listener::EventListener;
 use std::{
     future::{Future, IntoFuture},
     pin::Pin,
-    task::{Context, Poll},
+    task::{ready, Context, Poll},
 };
 
 /// A future that awaits this Stopper being stopped
 #[derive(Debug)]
 pub struct Stopped {
     stopper: Stopper,
-    event_listener: EventListener,
+    event_listener: Option<EventListener>,
 }
 
 impl From<Stopper> for Stopped {
@@ -34,17 +34,24 @@ impl Future for Stopped {
             event_listener,
         } = &mut *self;
         loop {
-            if stopper.is_stopped() {
+            if stopper.is_stopped_relaxed() {
                 return Poll::Ready(());
             }
 
-            match Pin::new(&mut *event_listener).poll(cx) {
-                Poll::Ready(()) => {
-                    *event_listener = stopper.0.event.listen();
-                    continue;
+            let listener = match event_listener {
+                Some(listener) => listener,
+                None => {
+                    let listener = event_listener.insert(stopper.listener());
+                    if stopper.is_stopped() {
+                        return Poll::Ready(());
+                    }
+                    listener
                 }
-                Poll::Pending => return Poll::Pending,
             };
+
+            ready!(Pin::new(listener).poll(cx));
+
+            *event_listener = None;
         }
     }
 }
@@ -54,10 +61,9 @@ impl IntoFuture for Stopper {
     type IntoFuture = Stopped;
 
     fn into_future(self) -> Self::IntoFuture {
-        let event_listener = self.0.event.listen();
         Stopped {
             stopper: self,
-            event_listener,
+            event_listener: None,
         }
     }
 }
