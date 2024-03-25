@@ -10,6 +10,7 @@ For a more complete graceful shutdown story, see [`Swansong`](http://github.com/
 * [Contributing][contributing]
 * [CI ![CI][ci-badge]][ci]
 * [API docs for main][main-docs]
+* [![codecov](https://codecov.io/gh/jbr/stopper/graph/badge.svg?token=TEBHK217BT)][codecov]
 
 [ci]: https://github.com/jbr/stopper/actions?query=workflow%3ACI
 [ci-badge]: https://github.com/jbr/stopper/workflows/CI/badge.svg
@@ -20,6 +21,7 @@ For a more complete graceful shutdown story, see [`Swansong`](http://github.com/
 [docs-badge]: https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square
 [version-badge]: https://img.shields.io/crates/v/stopper.svg?style=flat-square
 [main-docs]: https://jbr.github.io/stopper/stopper/
+[codecov]: https://codecov.io/gh/jbr/stopper
 
 ## Safety
 This crate uses `#![deny(unsafe_code)]`.
