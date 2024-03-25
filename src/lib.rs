@@ -13,7 +13,7 @@
 //! The primary type for this crate is [`Stopper`], which provides a
 //! synchronized mechanism for canceling Futures and Streams.
 
-use event_listener::{Event, IntoNotification};
+use event_listener::{Event, EventListener, IntoNotification};
 use futures_lite::Stream;
 use std::{
     fmt::{Debug, Formatter, Result},
@@ -72,6 +72,14 @@ impl Stopper {
     #[must_use]
     pub fn is_stopped(&self) -> bool {
         self.0.stopped.load(Ordering::SeqCst)
+    }
+
+    pub(crate) fn is_stopped_relaxed(&self) -> bool {
+        self.0.stopped.load(Ordering::Relaxed)
+    }
+
+    pub(crate) fn listener(&self) -> EventListener {
+        self.0.event.listen()
     }
 
     /// This function returns a new stream which will poll None

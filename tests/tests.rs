@@ -1,9 +1,11 @@
-use futures_lite::{future, stream, StreamExt};
+use futures_lite::{
+    future::{self, poll_once},
+    stream, StreamExt,
+};
 use std::{
     future::{Future, IntoFuture},
     process::Termination,
-    thread::{sleep, spawn},
-    time::Duration,
+    thread::spawn,
 };
 use stopper::Stopper;
 use test_harness::test;
@@ -21,12 +23,7 @@ where
 async fn future_stopper() {
     let stopper = Stopper::new();
     let future = stopper.stop_future(future::pending::<()>());
-
-    spawn(move || {
-        sleep(Duration::from_secs(1));
-        stopper.stop();
-    });
-
+    spawn(move || stopper.stop());
     assert_eq!(future.await, None);
 }
 
@@ -34,32 +31,28 @@ async fn future_stopper() {
 async fn stream_stopper() {
     let stopper = Stopper::new();
     let mut stream = stopper.stop_stream(stream::repeat("infinite stream"));
-
-    spawn(move || {
-        sleep(Duration::from_secs(1));
-        stopper.stop();
-    });
-
+    spawn(move || stopper.stop());
     while let Some(item) = stream.next().await {
         println!("{}", item);
     }
+
+    assert_eq!(poll_once(stream.next()).await, Some(None));
 }
 
 #[test(harness)]
 async fn stopped() {
     let stopper = Stopper::new();
     let future = stopper.clone().into_future();
-    spawn({
-        let stopper = stopper.clone();
-        move || {
-            sleep(Duration::from_secs(2));
-            stopper.stop();
-        }
-    });
     assert!(!stopper.is_stopped());
     assert!(future::poll_once(stopper.clone().into_future())
         .await
         .is_none());
+
+    spawn({
+        let stopper = stopper.clone();
+        move || stopper.stop()
+    });
+
     future.await;
     assert!(stopper.is_stopped());
     assert!(future::poll_once(stopper.into_future()).await.is_some());

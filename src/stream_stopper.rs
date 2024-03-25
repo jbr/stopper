@@ -15,7 +15,7 @@ pin_project_lite::pin_project! {
         #[pin]
         stream: S,
         stopper: Stopper,
-        event_listener: EventListener
+        event_listener: Option<EventListener>
     }
 }
 
@@ -50,7 +50,7 @@ impl<S: Stream> StreamStopper<S> {
         Self {
             stream,
             stopper: stopper.clone(),
-            event_listener: stopper.0.event.listen(),
+            event_listener: None,
         }
     }
 }
@@ -60,17 +60,36 @@ impl<S: Stream> Stream for StreamStopper<S> {
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let this = self.project();
+        let stopper = this.stopper;
+        let event_listener = this.event_listener;
+        let stream = this.stream;
+
         loop {
-            if this.stopper.is_stopped() {
+            if stopper.is_stopped_relaxed() {
                 return Poll::Ready(None);
             }
 
-            match Pin::new(&mut *this.event_listener).poll(cx) {
-                Poll::Ready(()) => {
-                    *this.event_listener = this.stopper.0.event.listen();
-                    continue;
+            let listener = match event_listener {
+                Some(listener) => listener,
+                None => {
+                    let listener = event_listener.insert(stopper.listener());
+                    if stopper.is_stopped() {
+                        return Poll::Ready(None);
+                    }
+                    listener
                 }
-                Poll::Pending => return this.stream.poll_next(cx),
+            };
+
+            match Pin::new(listener).poll(cx) {
+                Poll::Ready(()) => {
+                    *event_listener = None;
+                }
+                Poll::Pending if stopper.is_stopped_relaxed() => {
+                    return Poll::Ready(None);
+                }
+                Poll::Pending => {
+                    return stream.poll_next(cx);
+                }
             };
         }
     }

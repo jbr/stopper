@@ -15,7 +15,7 @@ pin_project! {
         #[pin]
         future: F,
         stopper: Stopper,
-        event_listener: EventListener,
+        event_listener: Option<EventListener>,
     }
 }
 
@@ -24,7 +24,7 @@ impl<F: Future> FutureStopper<F> {
         Self {
             future,
             stopper: stopper.clone(),
-            event_listener: stopper.0.event.listen(),
+            event_listener: None,
         }
     }
 }
@@ -34,18 +34,36 @@ impl<F: Future> Future for FutureStopper<F> {
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.project();
+        let stopper = this.stopper;
+        let event_listener = this.event_listener;
+        let future = this.future;
         loop {
-            if this.stopper.is_stopped() {
+            if stopper.is_stopped_relaxed() {
                 return Poll::Ready(None);
             }
 
-            match Pin::new(&mut *this.event_listener).poll(cx) {
-                Poll::Ready(()) => {
-                    *this.event_listener = this.stopper.0.event.listen();
-                    continue;
+            let listener = match event_listener {
+                Some(listener) => listener,
+                None => {
+                    let listener = event_listener.insert(stopper.listener());
+                    if stopper.is_stopped() {
+                        return Poll::Ready(None);
+                    }
+                    listener
                 }
+            };
+
+            match Pin::new(listener).poll(cx) {
+                Poll::Ready(()) => {
+                    *event_listener = None;
+                }
+
+                Poll::Pending if stopper.is_stopped_relaxed() => {
+                    return Poll::Ready(None);
+                }
+
                 Poll::Pending => {
-                    return this.future.poll(cx).map(Some);
+                    return future.poll(cx).map(Some);
                 }
             };
         }
