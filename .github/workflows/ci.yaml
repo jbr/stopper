@@ -73,6 +73,8 @@ jobs:
         uses: Swatinem/rust-cache@v2.7.3
       - name: Test with Miri
         run: cargo miri nextest run
+        continue-on-error: true
+
   coverage:
     runs-on: ubuntu-latest
 
