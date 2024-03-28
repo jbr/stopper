@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.8](https://github.com/jbr/stopper/compare/v0.2.7...v0.2.8) - 2024-03-28
+
+### Fixed
+- do not immediately register event listener
+
+### Other
+- *(deps)* bump codecov/codecov-action from 4.1.0 to 4.1.1
+- *(actions)* disable miri for now
+- *(deps)* bump codecov/codecov-action from 4.0.1 to 4.1.0
+- add coverage to readme
+- *(actions)* move coverage job into ci workflow
+- *(actions)* fix coverage workflow job name
+- *(actions)* add coverage and use `cargo miri nextest run`
+
 ## [0.2.7](https://github.com/jbr/stopper/compare/v0.2.6...v0.2.7) - 2024-03-24
 
 ### Fixed
