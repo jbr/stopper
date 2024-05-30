@@ -35,6 +35,14 @@ jobs:
         command: test
         args: --all
 
+    - name: loom
+      uses: actions-rs/cargo@v1
+      env:
+        RUSTFLAGS: "--cfg loom"
+      with:
+        command: test
+        args: --features loom --release
+
   check_fmt_and_docs:
     name: Checking fmt, clippy, and docs
     runs-on: ubuntu-latest
@@ -73,7 +81,6 @@ jobs:
         uses: Swatinem/rust-cache@v2.7.3
       - name: Test with Miri
         run: cargo miri nextest run
-        continue-on-error: true
 
   coverage:
     runs-on: ubuntu-latest

@@ -18,10 +18,17 @@ use futures_lite::Stream;
 use std::{
     fmt::{Debug, Formatter, Result},
     future::Future,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
+};
+
+#[cfg(all(loom, feature = "loom"))]
+use loom::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
+#[cfg(not(all(loom, feature = "loom")))]
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
 };
 
 mod stopped;

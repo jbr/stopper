@@ -8,11 +8,22 @@ license = "MIT OR Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/jbr/stopper"
 
+[features]
+loom = ["event-listener/loom", "dep:loom"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(loom)'] }
+
 [dependencies]
-futures-lite = "2.2.0"
-event-listener = "5.2.0"
-pin-project-lite = "0.2.13"
+futures-lite = "2.3.0"
+event-listener = "5.3.1"
+pin-project-lite = "0.2.14"
 
 [dev-dependencies]
 test-harness = "0.2.0"
 
+
+[target.'cfg(loom)'.dependencies.loom]
+version = "0.7"
+optional = true
+features = ["futures", "checkpoint"]
